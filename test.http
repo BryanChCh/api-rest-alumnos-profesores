@@ -1,4 +1,9 @@
-### Crear un nuevo alumno
+### ===================
+### API DE ALUMNOS
+### ===================
+
+### 1. Crear un nuevo alumno (Juan)
+# (Respuesta esperada: 201 Created)
 POST http://localhost:3000/alumnos
 Content-Type: application/json
 
@@ -9,14 +14,66 @@ Content-Type: application/json
     "promedio": 8.5
 }
 
-### Ver todos los alumnos
+---
+
+### 2. Crear un segundo alumno (Ana)
+# (Respuesta esperada: 201 Created)
+POST http://localhost:3000/alumnos
+Content-Type: application/json
+
+{
+    "nombres": "Ana",
+    "apellidos": "Garcia",
+    "matricula": "A67890",
+    "promedio": 9.2
+}
+
+---
+
+### 3. Ver todos los alumnos
+# (Respuesta esperada: 200 OK - Debería mostrar a Juan y Ana)
 GET http://localhost:3000/alumnos
+
+---
+
+### 4. Ver un alumno por ID (Juan)
+# (Respuesta esperada: 200 OK)
+GET http://localhost:3000/alumnos/1
+
+---
+
+### 5. Actualizar un alumno por ID (Juan)
+# (Respuesta esperada: 200 OK)
+PUT http://localhost:3000/alumnos/1
+Content-Type: application/json
+
+{
+    "nombres": "Juan Pablo",
+    "apellidos": "Pérez",
+    "matricula": "A12345-MOD",
+    "promedio": 8.7
+}
+
+---
+
+### 6. Eliminar un alumno por ID (Ana)
+# (Respuesta esperada: 200 OK)
+DELETE http://localhost:3000/alumnos/2
+
+---
+
+### 7. Ver todos los alumnos de nuevo
+# (Respuesta esperada: 200 OK - Debería mostrar solo a Juan Pablo)
+GET http://localhost:3000/alumnos
+
+---
 
 ### ===================
 ### API DE PROFESORES
 ### ===================
 
-### Crear un nuevo profesor
+### 1. Crear un nuevo profesor (Maria)
+# (Respuesta esperada: 201 Created)
 POST http://localhost:3000/profesores
 Content-Type: application/json
 
@@ -27,13 +84,22 @@ Content-Type: application/json
     "horasClase": 40
 }
 
-### Ver todos los profesores
+---
+
+### 2. Ver todos los profesores
+# (Respuesta esperada: 200 OK - Debería mostrar a Maria)
 GET http://localhost:3000/profesores
 
-### Ver profesor con ID 1
+---
+
+### 3. Ver profesor con ID 1
+# (Respuesta esperada: 200 OK)
 GET http://localhost:3000/profesores/1
 
-### Actualizar profesor con ID 1
+---
+
+### 4. Actualizar profesor con ID 1
+# (Respuesta esperada: 200 OK)
 PUT http://localhost:3000/profesores/1
 Content-Type: application/json
 
@@ -44,5 +110,55 @@ Content-Type: application/json
     "horasClase": 45
 }
 
-### Eliminar profesor con ID 1
+---
+
+### 5. Eliminar profesor con ID 1
+# (Respuesta esperada: 200 OK)
 DELETE http://localhost:3000/profesores/1
+
+---
+
+### 6. Ver todos los profesores de nuevo
+# (Respuesta esperada: 200 OK - Debería mostrar un array vacío [])
+GET http://localhost:3000/profesores
+
+---
+
+### ===================
+### PRUEBAS DE ERROR
+### ===================
+
+### 7. Ver alumno que no existe (ID 99)
+# (Respuesta esperada: 404 Not Found)
+GET http://localhost:3000/alumnos/99
+
+---
+
+### 8. Ver profesor que fue eliminado (ID 1)
+# (Respuesta esperada: 404 Not Found)
+GET http://localhost:3000/profesores/1
+
+---
+
+### 9. Crear alumno con campo faltante
+# (Respuesta esperada: 400 Bad Request)
+POST http://localhost:3000/alumnos
+Content-Type: application/json
+
+{
+    "nombres": "Pedro"
+}
+
+---
+
+### 10. Crear profesor con tipo de dato incorrecto
+# (Respuesta esperada: 400 Bad Request)
+POST http://localhost:3000/profesores
+Content-Type: application/json
+
+{
+    "numeroEmpleado": "P002",
+    "nombres": "Carlos",
+    "apellidos": "Sanchez",
+    "horasClase": "cuarenta"
+}
