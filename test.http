@@ -1,0 +1,48 @@
+### Crear un nuevo alumno
+POST http://localhost:3000/alumnos
+Content-Type: application/json
+
+{
+    "nombres": "Juan",
+    "apellidos": "Pérez",
+    "matricula": "A12345",
+    "promedio": 8.5
+}
+
+### Ver todos los alumnos
+GET http://localhost:3000/alumnos
+
+### ===================
+### API DE PROFESORES
+### ===================
+
+### Crear un nuevo profesor
+POST http://localhost:3000/profesores
+Content-Type: application/json
+
+{
+    "numeroEmpleado": "P001",
+    "nombres": "Maria",
+    "apellidos": "Gomez",
+    "horasClase": 40
+}
+
+### Ver todos los profesores
+GET http://localhost:3000/profesores
+
+### Ver profesor con ID 1
+GET http://localhost:3000/profesores/1
+
+### Actualizar profesor con ID 1
+PUT http://localhost:3000/profesores/1
+Content-Type: application/json
+
+{
+    "numeroEmpleado": "P001-A",
+    "nombres": "Maria Elena",
+    "apellidos": "Gomez",
+    "horasClase": 45
+}
+
+### Eliminar profesor con ID 1
+DELETE http://localhost:3000/profesores/1
