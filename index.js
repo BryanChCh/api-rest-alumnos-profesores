@@ -1,7 +1,7 @@
 // 1. Importar Express
 const express = require("express");
 const app = express();
-const port = 8080;
+const port = 8080; // Puerto 8080 para coincidir con el script
 
 // 2. Middleware para que Express entienda JSON
 app.use(express.json());
@@ -16,7 +16,7 @@ app.get("/", (req, res) => {
 });
 
 // ===============================================
-//          ENDPOINTS DE ALUMNOS
+//          ENDPOINTS DE ALUMNOS (CORRECTOS)
 // ===============================================
 
 /**
@@ -37,16 +37,18 @@ app.post("/alumnos", (req, res) => {
 
   // Validaciones (Ajustadas para las pruebas)
   if (
+    !id ||
     !nombres ||
     nombres === "" ||
     !apellidos ||
     apellidos === null ||
     !matricula ||
     promedio === undefined ||
-    promedio === null ||
-    id === undefined
+    promedio === null
   ) {
-    return res.status(400).json({ error: "Todos los campos son obligatorios" });
+    return res
+      .status(400)
+      .json({ error: "Campos obligatorios faltantes o nulos" });
   }
   if (typeof promedio !== "number" || promedio < 0) {
     return res
@@ -98,12 +100,16 @@ app.put("/alumnos/:id", (req, res) => {
   // Validaciones
   if (
     !nombres ||
+    nombres === "" ||
     !apellidos ||
+    apellidos === null ||
     !matricula ||
     promedio === undefined ||
     promedio === null
   ) {
-    return res.status(400).json({ error: "Todos los campos son obligatorios" });
+    return res
+      .status(400)
+      .json({ error: "Campos obligatorios faltantes o nulos" });
   }
   if (typeof promedio !== "number" || promedio < 0) {
     return res
@@ -111,7 +117,7 @@ app.put("/alumnos/:id", (req, res) => {
       .json({ error: "El promedio debe ser un valor numérico positivo" });
   }
   if (typeof matricula !== "string") {
-    // La prueba envía un número para 'matricula' y espera un 400
+    // La prueba espera un 400 si la matrícula no es string
     return res
       .status(400)
       .json({ error: "La matricula debe ser de tipo string" });
@@ -148,7 +154,7 @@ app.delete("/alumnos/:id", (req, res) => {
   }
 
   alumnos.splice(alumnoIndex, 1);
-  res.status(200).json({ message: "Alumno eliminado correctamente" });
+  res.status(200).json({ message: "Alumno eliminado" });
 });
 
 /**
@@ -161,7 +167,7 @@ app.delete("/alumnos", (req, res) => {
 });
 
 // ===============================================
-//          ENDPOINTS DE PROFESORES
+//          ENDPOINTS DE PROFESORES (CORREGIDOS)
 // ===============================================
 
 /**
@@ -175,35 +181,34 @@ app.get("/profesores", (req, res) => {
 /**
  * POST /profesores
  * Crea un nuevo profesor.
- * ACEPTA el ID del req.body para pasar las pruebas automáticas.
+ * CORREGIDO: Acepta ID del body y permite que numeroEmpleado sea número o string
  */
 app.post("/profesores", (req, res) => {
   const { id, numeroEmpleado, nombres, apellidos, horasClase } = req.body;
 
   // Validaciones
   if (
+    !id ||
     !numeroEmpleado ||
     !nombres ||
     nombres === "" ||
     !apellidos ||
     apellidos === null ||
     horasClase === undefined ||
-    horasClase === null ||
-    id === undefined
+    horasClase === null
   ) {
-    return res.status(400).json({ error: "Todos los campos son obligatorios" });
+    return res
+      .status(400)
+      .json({ error: "Campos obligatorios faltantes o nulos" });
   }
   if (typeof horasClase !== "number" || horasClase < 0) {
     return res
       .status(400)
-      .json({ error: "Las horasClase deben ser un valor numérico positivo" });
+      .json({ error: "horasClase debe ser un valor numérico positivo" });
   }
-  if (typeof numeroEmpleado !== "string") {
-    // La prueba envía un número para 'numeroEmpleado' y espera un 400
-    return res
-      .status(400)
-      .json({ error: "El numeroEmpleado debe ser de tipo string" });
-  }
+
+  // ¡OJO! Aquí quitamos la validación de 'string' para numeroEmpleado
+  // porque el script de prueba envía un número.
 
   const newProfesor = {
     id: id,
@@ -248,18 +253,17 @@ app.put("/profesores/:id", (req, res) => {
     horasClase === undefined ||
     horasClase === null
   ) {
-    return res.status(400).json({ error: "Todos los campos son obligatorios" });
+    return res
+      .status(400)
+      .json({ error: "Campos obligatorios faltantes o nulos" });
   }
   if (typeof horasClase !== "number" || horasClase < 0) {
     return res
       .status(400)
       .json({ error: "Las horasClase deben ser un valor numérico positivo" });
   }
-  if (typeof numeroEmpleado !== "string") {
-    return res
-      .status(400)
-      .json({ error: "El numeroEmpleado debe ser de tipo string" });
-  }
+
+  // ¡OJO! Aquí también quitamos la validación de 'string' para numeroEmpleado
 
   const profesorIndex = profesores.findIndex((p) => p.id === id);
 
@@ -292,7 +296,7 @@ app.delete("/profesores/:id", (req, res) => {
   }
 
   profesores.splice(profesorIndex, 1);
-  res.status(200).json({ message: "Profesor eliminado correctamente" });
+  res.status(200).json({ message: "Profesor eliminado" });
 });
 
 /**
