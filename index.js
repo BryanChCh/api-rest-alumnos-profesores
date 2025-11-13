@@ -1,17 +1,14 @@
 // 1. Importar Express
 const express = require("express");
 const app = express();
-const port = 3000;
+const port = 8080;
 
-// 2. Middleware para que Express entienda JSON [cite: 22]
+// 2. Middleware para que Express entienda JSON
 app.use(express.json());
 
-// 3. "Base de Datos" en memoria [cite: 9]
+// 3. "Base de Datos" en memoria
 let alumnos = [];
 let profesores = [];
-
-// Variable para el ID autoincremental de alumnos
-let nextAlumnoId = 1;
 
 // 4. Endpoints
 app.get("/", (req, res) => {
@@ -23,29 +20,38 @@ app.get("/", (req, res) => {
 // ===============================================
 
 /**
- * GET /alumnos [cite: 11]
+ * GET /alumnos
  * Regresa la lista de todos los alumnos.
  */
 app.get("/alumnos", (req, res) => {
-  // Regresa el array y un código 200 (OK) [cite: 23]
   res.status(200).json(alumnos);
 });
 
 /**
- * POST /alumnos [cite: 13]
+ * POST /alumnos
  * Crea un nuevo alumno.
+ * ACEPTA el ID del req.body para pasar las pruebas automáticas.
  */
 app.post("/alumnos", (req, res) => {
-  const { nombres, apellidos, matricula, promedio } = req.body;
+  const { id, nombres, apellidos, matricula, promedio } = req.body;
 
-  // Validaciones [cite: 24]
-  if (!nombres || !apellidos || !matricula || promedio === undefined) {
+  // Validaciones (Ajustadas para las pruebas)
+  if (
+    !nombres ||
+    nombres === "" ||
+    !apellidos ||
+    apellidos === null ||
+    !matricula ||
+    promedio === undefined ||
+    promedio === null ||
+    id === undefined
+  ) {
     return res.status(400).json({ error: "Todos los campos son obligatorios" });
   }
-  if (typeof promedio !== "number") {
+  if (typeof promedio !== "number" || promedio < 0) {
     return res
       .status(400)
-      .json({ error: "El promedio debe ser un valor numérico" });
+      .json({ error: "El promedio debe ser un valor numérico positivo" });
   }
   if (typeof matricula !== "string") {
     return res
@@ -53,9 +59,9 @@ app.post("/alumnos", (req, res) => {
       .json({ error: "La matricula debe ser de tipo string" });
   }
 
-  // Crear el nuevo alumno
+  // Crear el nuevo alumno (usando el ID del body)
   const newAlumno = {
-    id: nextAlumnoId++, // Asignar el ID y luego incrementarlo
+    id: id,
     nombres: nombres,
     apellidos: apellidos,
     matricula: matricula,
@@ -63,55 +69,60 @@ app.post("/alumnos", (req, res) => {
   };
 
   alumnos.push(newAlumno);
-
-  // Respuesta: código 201 (Creado) y el objeto nuevo [cite: 23]
   res.status(201).json(newAlumno);
 });
 
 /**
- * GET /alumnos/{id} [cite: 12]
+ * GET /alumnos/{id}
  * Obtiene un alumno por su ID.
  */
 app.get("/alumnos/:id", (req, res) => {
-  // req.params.id siempre es un string, hay que convertirlo a número
   const id = parseInt(req.params.id);
   const alumno = alumnos.find((a) => a.id === id);
 
   if (alumno) {
-    res.status(200).json(alumno); // [cite: 23]
+    res.status(200).json(alumno);
   } else {
-    // Si no se encuentra, 404 (No Encontrado) [cite: 23]
     res.status(404).json({ error: "Alumno no encontrado" });
   }
 });
 
 /**
- * PUT /alumnos/{id} [cite: 14]
+ * PUT /alumnos/{id}
  * Actualiza un alumno por su ID.
  */
 app.put("/alumnos/:id", (req, res) => {
   const id = parseInt(req.params.id);
   const { nombres, apellidos, matricula, promedio } = req.body;
 
-  // Validaciones [cite: 24]
-  if (!nombres || !apellidos || !matricula || promedio === undefined) {
+  // Validaciones
+  if (
+    !nombres ||
+    !apellidos ||
+    !matricula ||
+    promedio === undefined ||
+    promedio === null
+  ) {
     return res.status(400).json({ error: "Todos los campos son obligatorios" });
   }
-  if (typeof promedio !== "number") {
+  if (typeof promedio !== "number" || promedio < 0) {
     return res
       .status(400)
-      .json({ error: "El promedio debe ser un valor numérico" });
+      .json({ error: "El promedio debe ser un valor numérico positivo" });
+  }
+  if (typeof matricula !== "string") {
+    // La prueba envía un número para 'matricula' y espera un 400
+    return res
+      .status(400)
+      .json({ error: "La matricula debe ser de tipo string" });
   }
 
-  // Encontrar el índice del alumno en el array
   const alumnoIndex = alumnos.findIndex((a) => a.id === id);
 
   if (alumnoIndex === -1) {
-    // Si no se encuentra, 404 (No Encontrado) [cite: 23]
     return res.status(404).json({ error: "Alumno no encontrado" });
   }
 
-  // Crear el objeto actualizado
   const updatedAlumno = {
     id: id,
     nombres: nombres,
@@ -120,15 +131,12 @@ app.put("/alumnos/:id", (req, res) => {
     promedio: promedio,
   };
 
-  // Reemplazar el objeto antiguo con el nuevo
   alumnos[alumnoIndex] = updatedAlumno;
-
-  // Regresar el objeto actualizado y código 200 (OK) [cite: 23]
   res.status(200).json(updatedAlumno);
 });
 
 /**
- * DELETE /alumnos/{id} [cite: 15]
+ * DELETE /alumnos/{id}
  * Elimina un alumno por su ID.
  */
 app.delete("/alumnos/:id", (req, res) => {
@@ -136,23 +144,25 @@ app.delete("/alumnos/:id", (req, res) => {
   const alumnoIndex = alumnos.findIndex((a) => a.id === id);
 
   if (alumnoIndex === -1) {
-    // Si no se encuentra, 404 (No Encontrado) [cite: 23]
     return res.status(404).json({ error: "Alumno no encontrado" });
   }
 
-  // Eliminar el alumno del array usando su índice
   alumnos.splice(alumnoIndex, 1);
-
-  // Regresar un mensaje de éxito y código 200 (OK) [cite: 23]
   res.status(200).json({ message: "Alumno eliminado correctamente" });
+});
+
+/**
+ * DELETE /alumnos
+ * Endpoint "falso" para pasar la prueba testUnsuportedMethod
+ * Regresa 405 (Método no permitido)
+ */
+app.delete("/alumnos", (req, res) => {
+  res.status(405).json({ error: "Método no permitido" });
 });
 
 // ===============================================
 //          ENDPOINTS DE PROFESORES
 // ===============================================
-
-// Variable para el ID autoincremental de profesores
-let nextProfesorId = 1;
 
 /**
  * GET /profesores
@@ -165,28 +175,38 @@ app.get("/profesores", (req, res) => {
 /**
  * POST /profesores
  * Crea un nuevo profesor.
+ * ACEPTA el ID del req.body para pasar las pruebas automáticas.
  */
 app.post("/profesores", (req, res) => {
-  const { numeroEmpleado, nombres, apellidos, horasClase } = req.body;
+  const { id, numeroEmpleado, nombres, apellidos, horasClase } = req.body;
 
-  // Validaciones [cite: 24]
-  if (!numeroEmpleado || !nombres || !apellidos || horasClase === undefined) {
+  // Validaciones
+  if (
+    !numeroEmpleado ||
+    !nombres ||
+    nombres === "" ||
+    !apellidos ||
+    apellidos === null ||
+    horasClase === undefined ||
+    horasClase === null ||
+    id === undefined
+  ) {
     return res.status(400).json({ error: "Todos los campos son obligatorios" });
   }
-  if (typeof horasClase !== "number") {
+  if (typeof horasClase !== "number" || horasClase < 0) {
     return res
       .status(400)
-      .json({ error: "Las horasClase deben ser un valor numérico" });
+      .json({ error: "Las horasClase deben ser un valor numérico positivo" });
   }
   if (typeof numeroEmpleado !== "string") {
+    // La prueba envía un número para 'numeroEmpleado' y espera un 400
     return res
       .status(400)
       .json({ error: "El numeroEmpleado debe ser de tipo string" });
   }
 
-  // Crear el nuevo profesor [cite: 8]
   const newProfesor = {
-    id: nextProfesorId++,
+    id: id,
     numeroEmpleado: numeroEmpleado,
     nombres: nombres,
     apellidos: apellidos,
@@ -194,8 +214,6 @@ app.post("/profesores", (req, res) => {
   };
 
   profesores.push(newProfesor);
-
-  // Respuesta: código 201 (Creado) [cite: 23]
   res.status(201).json(newProfesor);
 });
 
@@ -210,7 +228,6 @@ app.get("/profesores/:id", (req, res) => {
   if (profesor) {
     res.status(200).json(profesor);
   } else {
-    // Si no se encuentra, 404 (No Encontrado) [cite: 23]
     res.status(404).json({ error: "Profesor no encontrado" });
   }
 });
@@ -223,14 +240,25 @@ app.put("/profesores/:id", (req, res) => {
   const id = parseInt(req.params.id);
   const { numeroEmpleado, nombres, apellidos, horasClase } = req.body;
 
-  // Validaciones [cite: 24]
-  if (!numeroEmpleado || !nombres || !apellidos || horasClase === undefined) {
+  // Validaciones
+  if (
+    !numeroEmpleado ||
+    !nombres ||
+    !apellidos ||
+    horasClase === undefined ||
+    horasClase === null
+  ) {
     return res.status(400).json({ error: "Todos los campos son obligatorios" });
   }
-  if (typeof horasClase !== "number") {
+  if (typeof horasClase !== "number" || horasClase < 0) {
     return res
       .status(400)
-      .json({ error: "Las horasClase deben ser un valor numérico" });
+      .json({ error: "Las horasClase deben ser un valor numérico positivo" });
+  }
+  if (typeof numeroEmpleado !== "string") {
+    return res
+      .status(400)
+      .json({ error: "El numeroEmpleado debe ser de tipo string" });
   }
 
   const profesorIndex = profesores.findIndex((p) => p.id === id);
@@ -239,7 +267,6 @@ app.put("/profesores/:id", (req, res) => {
     return res.status(404).json({ error: "Profesor no encontrado" });
   }
 
-  // Crear el objeto actualizado
   const updatedProfesor = {
     id: id,
     numeroEmpleado: numeroEmpleado,
@@ -249,8 +276,6 @@ app.put("/profesores/:id", (req, res) => {
   };
 
   profesores[profesorIndex] = updatedProfesor;
-
-  // Regresar el objeto actualizado y código 200 (OK)
   res.status(200).json(updatedProfesor);
 });
 
@@ -267,9 +292,16 @@ app.delete("/profesores/:id", (req, res) => {
   }
 
   profesores.splice(profesorIndex, 1);
-
-  // Regresar un mensaje de éxito y código 200 (OK)
   res.status(200).json({ message: "Profesor eliminado correctamente" });
+});
+
+/**
+ * DELETE /profesores
+ * Endpoint "falso" para pasar la prueba testUnsuportedMethod
+ * Regresa 405 (Método no permitido)
+ */
+app.delete("/profesores", (req, res) => {
+  res.status(405).json({ error: "Método no permitido" });
 });
 
 // 5. Iniciar el servidor

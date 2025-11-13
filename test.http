@@ -1,164 +1,109 @@
 ### ===================
-### API DE ALUMNOS
+### API DE ALUMNOS (PRUEBA LOCAL 8080)
 ### ===================
 
-### 1. Crear un nuevo alumno (Juan)
+### 1. Crear un nuevo alumno (ID manual: 101)
 # (Respuesta esperada: 201 Created)
-POST http://localhost:3000/alumnos
+POST http://localhost:8080/alumnos
 Content-Type: application/json
 
-{
-    "nombres": "Juan",
-    "apellidos": "Pérez",
-    "matricula": "A12345",
-    "promedio": 8.5
-}
+{"id": 101, "nombres": "Juan", "apellidos": "Pérez", "matricula": "A12345", "promedio": 8.5}
 
----
+###
+### 2. Ver todos los alumnos
+# (Respuesta esperada: 200 OK - Debería mostrar a Juan)
+GET http://localhost:8080/alumnos
 
-### 2. Crear un segundo alumno (Ana)
-# (Respuesta esperada: 201 Created)
-POST http://localhost:3000/alumnos
+###
+### 3. Ver un alumno por ID (ID 101)
+# (Respuesta esperada: 200 OK)
+GET http://localhost:8080/alumnos/101
+
+###
+### 4. Actualizar un alumno por ID (ID 101)
+# (Respuesta esperada: 200 OK)
+PUT http://localhost:8080/alumnos/101
 Content-Type: application/json
 
-{
-    "nombres": "Ana",
-    "apellidos": "Garcia",
-    "matricula": "A67890",
-    "promedio": 9.2
-}
+{"id": 101, "nombres": "Juan Pablo", "apellidos": "Pérez G.", "matricula": "A12345-MOD", "promedio": 8.7}
 
----
-
-### 3. Ver todos los alumnos
-# (Respuesta esperada: 200 OK - Debería mostrar a Juan y Ana)
-GET http://localhost:3000/alumnos
-
----
-
-### 4. Ver un alumno por ID (Juan)
+###
+### 5. Eliminar un alumno por ID (ID 101)
 # (Respuesta esperada: 200 OK)
-GET http://localhost:3000/alumnos/1
+DELETE http://localhost:8080/alumnos/101
 
----
+###
+### 6. Ver todos los alumnos de nuevo
+# (Respuesta esperada: 200 OK - Debería mostrar [])
+GET http://localhost:8080/alumnos
 
-### 5. Actualizar un alumno por ID (Juan)
-# (Respuesta esperada: 200 OK)
-PUT http://localhost:3000/alumnos/1
-Content-Type: application/json
+###
+### 7. Probar método no permitido (DELETE /alumnos)
+# (Respuesta esperada: 405 Method Not Allowed)
+DELETE http://localhost:8080/alumnos
 
-{
-    "nombres": "Juan Pablo",
-    "apellidos": "Pérez",
-    "matricula": "A12345-MOD",
-    "promedio": 8.7
-}
-
----
-
-### 6. Eliminar un alumno por ID (Ana)
-# (Respuesta esperada: 200 OK)
-DELETE http://localhost:3000/alumnos/2
-
----
-
-### 7. Ver todos los alumnos de nuevo
-# (Respuesta esperada: 200 OK - Debería mostrar solo a Juan Pablo)
-GET http://localhost:3000/alumnos
-
----
-
+###
 ### ===================
-### API DE PROFESORES
+### API DE PROFESORES (PRUEBA LOCAL 8080)
 ### ===================
 
-### 1. Crear un nuevo profesor (Maria)
+### 1. Crear un nuevo profesor (ID manual: 201)
 # (Respuesta esperada: 201 Created)
-POST http://localhost:3000/profesores
+POST http://localhost:8080/profesores
 Content-Type: application/json
 
-{
-    "numeroEmpleado": "P001",
-    "nombres": "Maria",
-    "apellidos": "Gomez",
-    "horasClase": 40
-}
+{"id": 201, "numeroEmpleado": "P001", "nombres": "Maria", "apellidos": "Gomez", "horasClase": 40}
 
----
-
+###
 ### 2. Ver todos los profesores
 # (Respuesta esperada: 200 OK - Debería mostrar a Maria)
-GET http://localhost:3000/profesores
+GET http://localhost:8080/profesores
 
----
-
-### 3. Ver profesor con ID 1
+###
+### 3. Ver profesor con ID 201
 # (Respuesta esperada: 200 OK)
-GET http://localhost:3000/profesores/1
+GET http://localhost:8080/profesores/201
 
----
-
-### 4. Actualizar profesor con ID 1
+###
+### 4. Actualizar profesor con ID 201
 # (Respuesta esperada: 200 OK)
-PUT http://localhost:3000/profesores/1
+PUT http://localhost:8080/profesores/201
 Content-Type: application/json
 
-{
-    "numeroEmpleado": "P001-A",
-    "nombres": "Maria Elena",
-    "apellidos": "Gomez",
-    "horasClase": 45
-}
+{"id": 201, "numeroEmpleado": "P001-A", "nombres": "Maria Elena", "apellidos": "Gomez", "horasClase": 45}
 
----
-
-### 5. Eliminar profesor con ID 1
+###
+### 5. Eliminar profesor con ID 201
 # (Respuesta esperada: 200 OK)
-DELETE http://localhost:3000/profesores/1
+DELETE http://localhost:8080/profesores/201
 
----
+###
+### 6. Probar método no permitido (DELETE /profesores)
+# (Respuesta esperada: 405 Method Not Allowed)
+DELETE http://localhost:8080/profesores
 
-### 6. Ver todos los profesores de nuevo
-# (Respuesta esperada: 200 OK - Debería mostrar un array vacío [])
-GET http://localhost:3000/profesores
-
----
-
+###
 ### ===================
-### PRUEBAS DE ERROR
+### PRUEBAS DE ERROR (PRUEBA LOCAL 8080)
 ### ===================
 
-### 7. Ver alumno que no existe (ID 99)
-# (Respuesta esperada: 404 Not Found)
-GET http://localhost:3000/alumnos/99
-
----
-
-### 8. Ver profesor que fue eliminado (ID 1)
-# (Respuesta esperada: 404 Not Found)
-GET http://localhost:3000/profesores/1
-
----
-
-### 9. Crear alumno con campo faltante
-# (Respuesta esperada: 400 Bad Request)
-POST http://localhost:3000/alumnos
+### 1. Crear alumno con campo faltante (espera 400)
+POST http://localhost:8080/alumnos
 Content-Type: application/json
 
-{
-    "nombres": "Pedro"
-}
+{"id": 102, "nombres": "Pedro"}
 
----
-
-### 10. Crear profesor con tipo de dato incorrecto
-# (Respuesta esperada: 400 Bad Request)
-POST http://localhost:3000/profesores
+###
+### 2. Crear profesor con valor negativo (espera 400)
+POST http://localhost:8080/profesores
 Content-Type: application/json
 
-{
-    "numeroEmpleado": "P002",
-    "nombres": "Carlos",
-    "apellidos": "Sanchez",
-    "horasClase": "cuarenta"
-}
+{"id": 203, "numeroEmpleado": "P003", "nombres": "Luis", "apellidos": "Sol", "horasClase": -10}
+
+###
+### 3. Crear alumno con tipo de dato incorrecto (espera 400)
+# Esta prueba es del script del profesor
+POST http://localhost:8080/alumnos
+Content-Type: application/json
+
+{"id": 104, "nombres": "Test", "apellidos": "Error", "matricula": 12345, "promedio": 8.0}
