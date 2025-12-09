@@ -1,310 +1,336 @@
-// 1. Importar Express
+require("dotenv").config(); // <-- Esta línea es vital, carga el archivo .env
+
 const express = require("express");
 const app = express();
 const port = 8080;
 
-// 2. Middleware para que Express entienda JSON
+// Librerías
+const AWS = require("aws-sdk");
+const multer = require("multer");
+const { v4: uuidv4 } = require("uuid");
+const crypto = require("crypto");
+
+// Base de datos y modelos
+const sequelize = require("./config/database");
+const Alumno = require("./models/Alumno");
+const Profesor = require("./models/Profesor");
+
 app.use(express.json());
 
-// 3. "Base de Datos" en memoria
-let alumnos = [];
-let profesores = [];
+// ==========================================
+// --- CONFIGURACIÓN AWS (S3, SNS, DynamoDB) ---
+// ==========================================
 
-// 4. Endpoints
-app.get("/", (req, res) => {
-  res.send("¡Hola! Esta es la raíz de tu API REST.");
+AWS.config.update({
+  region: "us-east-1",
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  sessionToken: process.env.AWS_SESSION_TOKEN,
 });
+
+const s3 = new AWS.S3();
+const sns = new AWS.SNS();
+const dynamoDb = new AWS.DynamoDB.DocumentClient();
+
+const BUCKET_NAME = "uady-fotos-perfil-20216415"; // Tu bucket
+const SNS_TOPIC_ARN = "arn:aws:sns:us-east-1:853377032474:uady-notificaciones"; // Tu ARN
+const DYNAMO_TABLE = "sesiones-alumnos";
+
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
+
+app.get("/", (req, res) => {
+  res.send("¡API REST Final: RDS + S3 + SNS + DynamoDB!");
+});
+
+// ... (El resto del código de endpoints SIGUE IGUAL, no necesitas cambiar nada más abajo) ...
 
 // ===============================================
 //          ENDPOINTS DE ALUMNOS
 // ===============================================
 
-/**
- * GET /alumnos
- * Regresa la lista de todos los alumnos.
- */
-app.get("/alumnos", (req, res) => {
-  res.status(200).json(alumnos);
+app.get("/alumnos", async (req, res) => {
+  try {
+    const alumnos = await Alumno.findAll();
+    res.status(200).json(alumnos);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-/**
- * POST /alumnos
- * Crea un nuevo alumno.
- * ACEPTA el ID del req.body para pasar las pruebas automáticas.
- */
-app.post("/alumnos", (req, res) => {
-  const { id, nombres, apellidos, matricula, promedio } = req.body;
+app.post("/alumnos", async (req, res) => {
+  try {
+    const { nombres, apellidos, matricula, promedio, password } = req.body;
 
-  // Validaciones (Ajustadas para las pruebas)
-  if (
-    !nombres ||
-    nombres === "" ||
-    !apellidos ||
-    apellidos === null ||
-    !matricula ||
-    promedio === undefined ||
-    promedio === null ||
-    id === undefined
-  ) {
-    return res.status(400).json({ error: "Todos los campos son obligatorios" });
-  }
-  if (typeof promedio !== "number" || promedio < 0) {
-    return res
-      .status(400)
-      .json({ error: "El promedio debe ser un valor numérico positivo" });
-  }
-  if (typeof matricula !== "string") {
-    return res
-      .status(400)
-      .json({ error: "La matricula debe ser de tipo string" });
-  }
+    if (!nombres || !apellidos || !matricula || promedio === undefined) {
+      return res.status(400).json({ error: "Campos obligatorios faltantes" });
+    }
 
-  // Crear el nuevo alumno (usando el ID del body)
-  const newAlumno = {
-    id: id,
-    nombres: nombres,
-    apellidos: apellidos,
-    matricula: matricula,
-    promedio: promedio,
-  };
+    const newAlumno = await Alumno.create({
+      nombres,
+      apellidos,
+      matricula,
+      promedio,
+      password,
+    });
 
-  alumnos.push(newAlumno);
-  res.status(201).json(newAlumno);
+    res.status(201).json(newAlumno);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
 });
 
-/**
- * GET /alumnos/{id}
- * Obtiene un alumno por su ID.
- */
-app.get("/alumnos/:id", (req, res) => {
-  const id = parseInt(req.params.id);
-  const alumno = alumnos.find((a) => a.id === id);
+app.get("/alumnos/:id", async (req, res) => {
+  try {
+    const alumno = await Alumno.findByPk(req.params.id);
+    if (alumno) res.status(200).json(alumno);
+    else res.status(404).json({ error: "Alumno no encontrado" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-  if (alumno) {
+app.put("/alumnos/:id", async (req, res) => {
+  try {
+    const { nombres, apellidos, matricula, promedio, password } = req.body;
+    const alumno = await Alumno.findByPk(req.params.id);
+    if (!alumno) return res.status(404).json({ error: "Alumno no encontrado" });
+
+    await alumno.update({ nombres, apellidos, matricula, promedio, password });
     res.status(200).json(alumno);
-  } else {
-    res.status(404).json({ error: "Alumno no encontrado" });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
   }
 });
 
-/**
- * PUT /alumnos/{id}
- * Actualiza un alumno por su ID.
- */
-app.put("/alumnos/:id", (req, res) => {
-  const id = parseInt(req.params.id);
-  const { nombres, apellidos, matricula, promedio } = req.body;
-
-  // Validaciones
-  if (
-    !nombres ||
-    !apellidos ||
-    !matricula ||
-    promedio === undefined ||
-    promedio === null
-  ) {
-    return res.status(400).json({ error: "Todos los campos son obligatorios" });
+app.delete("/alumnos/:id", async (req, res) => {
+  try {
+    const alumno = await Alumno.findByPk(req.params.id);
+    if (!alumno) return res.status(404).json({ error: "Alumno no encontrado" });
+    await alumno.destroy();
+    res.status(200).json({ message: "Alumno eliminado" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
-  if (typeof promedio !== "number" || promedio < 0) {
-    return res
-      .status(400)
-      .json({ error: "El promedio debe ser un valor numérico positivo" });
-  }
-  if (typeof matricula !== "string") {
-    // La prueba envía un número para 'matricula' y espera un 400
-    return res
-      .status(400)
-      .json({ error: "La matricula debe ser de tipo string" });
-  }
-
-  const alumnoIndex = alumnos.findIndex((a) => a.id === id);
-
-  if (alumnoIndex === -1) {
-    return res.status(404).json({ error: "Alumno no encontrado" });
-  }
-
-  const updatedAlumno = {
-    id: id,
-    nombres: nombres,
-    apellidos: apellidos,
-    matricula: matricula,
-    promedio: promedio,
-  };
-
-  alumnos[alumnoIndex] = updatedAlumno;
-  res.status(200).json(updatedAlumno);
 });
 
-/**
- * DELETE /alumnos/{id}
- * Elimina un alumno por su ID.
- */
-app.delete("/alumnos/:id", (req, res) => {
-  const id = parseInt(req.params.id);
-  const alumnoIndex = alumnos.findIndex((a) => a.id === id);
-
-  if (alumnoIndex === -1) {
-    return res.status(404).json({ error: "Alumno no encontrado" });
-  }
-
-  alumnos.splice(alumnoIndex, 1);
-  res.status(200).json({ message: "Alumno eliminado correctamente" });
-});
-
-/**
- * DELETE /alumnos
- * Endpoint "falso" para pasar la prueba testUnsuportedMethod
- * Regresa 405 (Método no permitido)
- */
 app.delete("/alumnos", (req, res) => {
   res.status(405).json({ error: "Método no permitido" });
+});
+
+// --- S3: SUBIR FOTO ---
+app.post("/alumnos/:id/fotoPerfil", upload.single("foto"), async (req, res) => {
+  try {
+    const id = req.params.id;
+    const file = req.file;
+    const alumno = await Alumno.findByPk(id);
+
+    if (!alumno) return res.status(404).json({ error: "Alumno no encontrado" });
+    if (!file)
+      return res.status(400).json({ error: "No se subió ninguna imagen" });
+
+    const fileName = `fotos/${id}-${Date.now()}-${file.originalname}`;
+    const params = {
+      Bucket: BUCKET_NAME,
+      Key: fileName,
+      Body: file.buffer,
+      ContentType: file.mimetype,
+      // ACL: 'public-read' // Descomentar si tu bucket requiere ACL explícita
+    };
+
+    const data = await s3.upload(params).promise();
+    await alumno.update({ fotoPerfilUrl: data.Location });
+
+    res.status(200).json({
+      message: "Foto subida",
+      fotoPerfilUrl: data.Location,
+      alumno: alumno,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error S3: " + error.message });
+  }
+});
+
+// --- SNS: EMAIL ---
+app.post("/alumnos/:id/email", async (req, res) => {
+  try {
+    const alumno = await Alumno.findByPk(req.params.id);
+    if (!alumno) return res.status(404).json({ error: "Alumno no encontrado" });
+
+    const params = {
+      Message: `Calificaciones de ${alumno.nombres}: Promedio ${alumno.promedio}`,
+      Subject: `Reporte UADY - ${alumno.matricula}`,
+      TopicArn: SNS_TOPIC_ARN,
+    };
+
+    await sns.publish(params).promise();
+    res.status(200).json({ message: "Correo enviado vía SNS" });
+  } catch (error) {
+    res.status(500).json({ error: "Error SNS: " + error.message });
+  }
+});
+
+// ===============================================
+//          SESIONES (DynamoDB)
+// ===============================================
+
+// 1. LOGIN
+app.post("/alumnos/:id/session/login", async (req, res) => {
+  try {
+    const { password } = req.body;
+    const id = req.params.id;
+
+    // Buscar alumno en RDS
+    const alumno = await Alumno.findByPk(id);
+    if (!alumno) return res.status(404).json({ error: "Alumno no encontrado" });
+
+    // Verificar password (comparación simple)
+    if (!alumno.password || alumno.password !== password) {
+      return res
+        .status(400)
+        .json({ error: "Contraseña incorrecta o no establecida" });
+    }
+
+    // Generar datos de sesión
+    const sessionId = uuidv4();
+    const sessionString = crypto.randomBytes(64).toString("hex");
+    const now = Math.floor(Date.now() / 1000);
+
+    const item = {
+      id: sessionId,
+      fecha: now,
+      alumnoId: parseInt(id),
+      active: true,
+      sessionString: sessionString,
+    };
+
+    await dynamoDb
+      .put({
+        TableName: DYNAMO_TABLE,
+        Item: item,
+      })
+      .promise();
+
+    res
+      .status(200)
+      .json({ message: "Login exitoso", sessionString: sessionString });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error DynamoDB: " + error.message });
+  }
+});
+
+// 2. VERIFY
+app.post("/alumnos/:id/session/verify", async (req, res) => {
+  try {
+    const { sessionString } = req.body;
+    if (!sessionString)
+      return res.status(400).json({ error: "Falta sessionString" });
+
+    const params = {
+      TableName: DYNAMO_TABLE,
+      FilterExpression: "sessionString = :s AND active = :a",
+      ExpressionAttributeValues: {
+        ":s": sessionString,
+        ":a": true,
+      },
+    };
+
+    const result = await dynamoDb.scan(params).promise();
+
+    if (result.Items.length > 0) {
+      res
+        .status(200)
+        .json({ message: "Sesión válida", session: result.Items[0] });
+    } else {
+      res.status(400).json({ error: "Sesión inválida o expirada" });
+    }
+  } catch (error) {
+    res.status(500).json({ error: "Error DynamoDB: " + error.message });
+  }
+});
+
+// 3. LOGOUT
+app.post("/alumnos/:id/session/logout", async (req, res) => {
+  try {
+    const { sessionString } = req.body;
+    if (!sessionString)
+      return res.status(400).json({ error: "Falta sessionString" });
+
+    const scanParams = {
+      TableName: DYNAMO_TABLE,
+      FilterExpression: "sessionString = :s",
+      ExpressionAttributeValues: { ":s": sessionString },
+    };
+
+    const result = await dynamoDb.scan(scanParams).promise();
+
+    if (result.Items.length === 0) {
+      return res.status(400).json({ error: "Sesión no encontrada" });
+    }
+
+    const sessionItem = result.Items[0];
+
+    await dynamoDb
+      .update({
+        TableName: DYNAMO_TABLE,
+        Key: { id: sessionItem.id },
+        UpdateExpression: "set active = :a",
+        ExpressionAttributeValues: { ":a": false },
+      })
+      .promise();
+
+    res.status(200).json({ message: "Logout exitoso" });
+  } catch (error) {
+    res.status(500).json({ error: "Error DynamoDB: " + error.message });
+  }
 });
 
 // ===============================================
 //          ENDPOINTS DE PROFESORES
 // ===============================================
-
-/**
- * GET /profesores
- * Regresa la lista de todos los profesores.
- */
-app.get("/profesores", (req, res) => {
+app.get("/profesores", async (req, res) => {
+  const profesores = await Profesor.findAll();
   res.status(200).json(profesores);
 });
-
-/**
- * POST /profesores
- * Crea un nuevo profesor.
- * ACEPTA el ID del req.body para pasar las pruebas automáticas.
- */
-app.post("/profesores", (req, res) => {
-  const { id, numeroEmpleado, nombres, apellidos, horasClase } = req.body;
-
-  // Validaciones
-  if (
-    !numeroEmpleado ||
-    !nombres ||
-    nombres === "" ||
-    !apellidos ||
-    apellidos === null ||
-    horasClase === undefined ||
-    horasClase === null ||
-    id === undefined
-  ) {
-    return res.status(400).json({ error: "Todos los campos son obligatorios" });
-  }
-  if (typeof horasClase !== "number" || horasClase < 0) {
-    return res
-      .status(400)
-      .json({ error: "Las horasClase deben ser un valor numérico positivo" });
-  }
-  if (typeof numeroEmpleado !== "string") {
-    // La prueba envía un número para 'numeroEmpleado' y espera un 400
-    return res
-      .status(400)
-      .json({ error: "El numeroEmpleado debe ser de tipo string" });
-  }
-
-  const newProfesor = {
-    id: id,
-    numeroEmpleado: numeroEmpleado,
-    nombres: nombres,
-    apellidos: apellidos,
-    horasClase: horasClase,
-  };
-
-  profesores.push(newProfesor);
-  res.status(201).json(newProfesor);
-});
-
-/**
- * GET /profesores/{id}
- * Obtiene un profesor por su ID.
- */
-app.get("/profesores/:id", (req, res) => {
-  const id = parseInt(req.params.id);
-  const profesor = profesores.find((p) => p.id === id);
-
-  if (profesor) {
-    res.status(200).json(profesor);
-  } else {
-    res.status(404).json({ error: "Profesor no encontrado" });
-  }
-});
-
-/**
- * PUT /profesores/{id}
- * Actualiza un profesor por su ID.
- */
-app.put("/profesores/:id", (req, res) => {
-  const id = parseInt(req.params.id);
+app.post("/profesores", async (req, res) => {
   const { numeroEmpleado, nombres, apellidos, horasClase } = req.body;
-
-  // Validaciones
-  if (
-    !numeroEmpleado ||
-    !nombres ||
-    !apellidos ||
-    horasClase === undefined ||
-    horasClase === null
-  ) {
-    return res.status(400).json({ error: "Todos los campos son obligatorios" });
+  if (!numeroEmpleado || !nombres || !apellidos || horasClase === undefined) {
+    return res.status(400).json({ error: "Faltan datos" });
   }
-  if (typeof horasClase !== "number" || horasClase < 0) {
-    return res
-      .status(400)
-      .json({ error: "Las horasClase deben ser un valor numérico positivo" });
-  }
-  if (typeof numeroEmpleado !== "string") {
-    return res
-      .status(400)
-      .json({ error: "El numeroEmpleado debe ser de tipo string" });
-  }
-
-  const profesorIndex = profesores.findIndex((p) => p.id === id);
-
-  if (profesorIndex === -1) {
-    return res.status(404).json({ error: "Profesor no encontrado" });
-  }
-
-  const updatedProfesor = {
-    id: id,
-    numeroEmpleado: numeroEmpleado,
-    nombres: nombres,
-    apellidos: apellidos,
-    horasClase: horasClase,
-  };
-
-  profesores[profesorIndex] = updatedProfesor;
-  res.status(200).json(updatedProfesor);
+  const newP = await Profesor.create({
+    numeroEmpleado,
+    nombres,
+    apellidos,
+    horasClase,
+  });
+  res.status(201).json(newP);
 });
-
-/**
- * DELETE /profesores/{id}
- * Elimina un profesor por su ID.
- */
-app.delete("/profesores/:id", (req, res) => {
-  const id = parseInt(req.params.id);
-  const profesorIndex = profesores.findIndex((p) => p.id === id);
-
-  if (profesorIndex === -1) {
-    return res.status(404).json({ error: "Profesor no encontrado" });
-  }
-
-  profesores.splice(profesorIndex, 1);
-  res.status(200).json({ message: "Profesor eliminado correctamente" });
+app.get("/profesores/:id", async (req, res) => {
+  const p = await Profesor.findByPk(req.params.id);
+  p
+    ? res.status(200).json(p)
+    : res.status(404).json({ error: "No encontrado" });
 });
-
-/**
- * DELETE /profesores
- * Endpoint "falso" para pasar la prueba testUnsuportedMethod
- * Regresa 405 (Método no permitido)
- */
-app.delete("/profesores", (req, res) => {
-  res.status(405).json({ error: "Método no permitido" });
+app.put("/profesores/:id", async (req, res) => {
+  const p = await Profesor.findByPk(req.params.id);
+  if (!p) return res.status(404).json({ error: "No encontrado" });
+  await p.update(req.body);
+  res.status(200).json(p);
 });
+app.delete("/profesores/:id", async (req, res) => {
+  const p = await Profesor.findByPk(req.params.id);
+  if (!p) return res.status(404).json({ error: "No encontrado" });
+  await p.destroy();
+  res.status(200).json({ message: "Eliminado" });
+});
+app.delete("/profesores", (req, res) =>
+  res.status(405).json({ error: "No permitido" })
+);
 
-// 5. Iniciar el servidor
-app.listen(port, () => {
-  console.log(`Servidor de API corriendo en http://localhost:${port}`);
+// Inicio
+sequelize.sync().then(() => {
+  console.log("✅ DB Sincronizada");
+  app.listen(port, () => console.log(`Servidor en http://localhost:${port}`));
 });

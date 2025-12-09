@@ -1,109 +1,108 @@
-### ===================
-### API DE ALUMNOS (PRUEBA LOCAL 8080)
-### ===================
+### ==========================================
+### 1. API DE ALUMNOS (RDS + S3 + SNS)
+### ==========================================
 
-### 1. Crear un nuevo alumno (ID manual: 101)
-# (Respuesta esperada: 201 Created)
+### Crear alumno (Con contraseña para el login)
 POST http://localhost:8080/alumnos
 Content-Type: application/json
 
-{"id": 101, "nombres": "Juan", "apellidos": "Pérez", "matricula": "A12345", "promedio": 8.5}
+{
+    "nombres": "Juan",
+    "apellidos": "SessionTester",
+    "matricula": "LOGIN001",
+    "promedio": 9.5,
+    "password": "super-secreto"
+}
 
-###
-### 2. Ver todos los alumnos
-# (Respuesta esperada: 200 OK - Debería mostrar a Juan)
+### Ver todos los alumnos
 GET http://localhost:8080/alumnos
 
-###
-### 3. Ver un alumno por ID (ID 101)
-# (Respuesta esperada: 200 OK)
-GET http://localhost:8080/alumnos/101
+### Enviar correo de calificaciones (SNS)
+# Asumiendo que el alumno creado arriba tiene ID 1
+POST http://localhost:8080/alumnos/1/email
 
-###
-### 4. Actualizar un alumno por ID (ID 101)
-# (Respuesta esperada: 200 OK)
-PUT http://localhost:8080/alumnos/101
-Content-Type: application/json
 
-{"id": 101, "nombres": "Juan Pablo", "apellidos": "Pérez G.", "matricula": "A12345-MOD", "promedio": 8.7}
+### ==========================================
+### 2. API DE PROFESORES (RDS)
+### ==========================================
 
-###
-### 5. Eliminar un alumno por ID (ID 101)
-# (Respuesta esperada: 200 OK)
-DELETE http://localhost:8080/alumnos/101
-
-###
-### 6. Ver todos los alumnos de nuevo
-# (Respuesta esperada: 200 OK - Debería mostrar [])
-GET http://localhost:8080/alumnos
-
-###
-### 7. Probar método no permitido (DELETE /alumnos)
-# (Respuesta esperada: 405 Method Not Allowed)
-DELETE http://localhost:8080/alumnos
-
-###
-### ===================
-### API DE PROFESORES (PRUEBA LOCAL 8080)
-### ===================
-
-### 1. Crear un nuevo profesor (ID manual: 201)
-# (Respuesta esperada: 201 Created)
+### Crear profesor
 POST http://localhost:8080/profesores
 Content-Type: application/json
 
-{"id": 201, "numeroEmpleado": "P001", "nombres": "Maria", "apellidos": "Gomez", "horasClase": 40}
+{
+    "numeroEmpleado": 999,
+    "nombres": "Profe",
+    "apellidos": "Dynamo",
+    "horasClase": 20
+}
 
-###
-### 2. Ver todos los profesores
-# (Respuesta esperada: 200 OK - Debería mostrar a Maria)
+### Ver profesores
 GET http://localhost:8080/profesores
 
-###
-### 3. Ver profesor con ID 201
-# (Respuesta esperada: 200 OK)
-GET http://localhost:8080/profesores/201
 
-###
-### 4. Actualizar profesor con ID 201
-# (Respuesta esperada: 200 OK)
-PUT http://localhost:8080/profesores/201
+### ==========================================
+### 3. PRUEBAS DE SESIÓN (DYNAMODB)
+### ==========================================
+
+### A. LOGIN (Iniciar Sesión)
+# Usa el ID del alumno creado arriba (ej. 1) y su contraseña
+POST http://localhost:8080/alumnos/3/session/login
 Content-Type: application/json
 
-{"id": 201, "numeroEmpleado": "P001-A", "nombres": "Maria Elena", "apellidos": "Gomez", "horasClase": 45}
+{
+    "password": "super-secreto"
+}
 
-###
-### 5. Eliminar profesor con ID 201
-# (Respuesta esperada: 200 OK)
-DELETE http://localhost:8080/profesores/201
+# --- ¡ALTO AQUÍ! ---
+# Copia el "sessionString" de la respuesta y pégalo abajo.
 
-###
-### 6. Probar método no permitido (DELETE /profesores)
+
+### B. VERIFICAR SESIÓN (Verify)
+POST http://localhost:8080/alumnos/3/session/verify
+Content-Type: application/json
+
+{
+    "sessionString": "23f4d420637d3999d577999061865b6741007ec9d3a4ea242d1508e9ee5636d4c0963ce30912bad7e7f4ddfa793236c583a8a7e15d6a790bd5127db4ffc00266"
+}
+
+
+### C. CERRAR SESIÓN (Logout)
+POST http://localhost:8080/alumnos/3/session/logout
+Content-Type: application/json
+
+{
+    "sessionString": "23f4d420637d3999d577999061865b6741007ec9d3a4ea242d1508e9ee5636d4c0963ce30912bad7e7f4ddfa793236c583a8a7e15d6a790bd5127db4ffc00266"
+}
+
+
+### ==========================================
+### 4. PRUEBAS AVANZADAS DE ELIMINACIÓN
+### ==========================================
+
+### Paso 1: Crear un alumno "desechable" solo para borrarlo
+POST http://localhost:8080/alumnos
+Content-Type: application/json
+
+{
+    "nombres": "Alumno",
+    "apellidos": "A Borrar",
+    "matricula": "DELETE-ME",
+    "promedio": 5.0
+}
+
+### Paso 2: Borrar al alumno recién creado (Asumiendo que es el ID 2)
+# (Respuesta esperada: 200 OK - "Alumno eliminado")
+DELETE http://localhost:8080/alumnos/2
+
+### Paso 3: Verificar que ya no existe
+# (Respuesta esperada: 404 Not Found)
+GET http://localhost:8080/alumnos/2
+
+### Paso 4: Intentar borrar un ID que no existe (ej. 9999)
+# (Respuesta esperada: 404 Not Found - "Alumno no encontrado")
+DELETE http://localhost:8080/alumnos/9999
+
+### Paso 5: Probar el método no permitido en la raíz
 # (Respuesta esperada: 405 Method Not Allowed)
-DELETE http://localhost:8080/profesores
-
-###
-### ===================
-### PRUEBAS DE ERROR (PRUEBA LOCAL 8080)
-### ===================
-
-### 1. Crear alumno con campo faltante (espera 400)
-POST http://localhost:8080/alumnos
-Content-Type: application/json
-
-{"id": 102, "nombres": "Pedro"}
-
-###
-### 2. Crear profesor con valor negativo (espera 400)
-POST http://localhost:8080/profesores
-Content-Type: application/json
-
-{"id": 203, "numeroEmpleado": "P003", "nombres": "Luis", "apellidos": "Sol", "horasClase": -10}
-
-###
-### 3. Crear alumno con tipo de dato incorrecto (espera 400)
-# Esta prueba es del script del profesor
-POST http://localhost:8080/alumnos
-Content-Type: application/json
-
-{"id": 104, "nombres": "Test", "apellidos": "Error", "matricula": 12345, "promedio": 8.0}
+DELETE http://localhost:8080/alumnos

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Prueba Subir Foto</title>
+  </head>
+  <body>
+    <h1>Prueba de Subida de Foto a S3</h1>
+
+    <!-- Este formulario enviará la foto a tu API local -->
+    <!-- Asumimos que existe el alumno con ID 1. Si no, cambia el número en la URL -->
+    <form
+      action="http://localhost:8080/alumnos/1/fotoPerfil"
+      method="POST"
+      enctype="multipart/form-data"
+    >
+      <label>Selecciona una imagen:</label><br /><br />
+      <input type="file" name="foto" required accept="image/*" /><br /><br />
+      <button type="submit">Subir Foto</button>
+    </form>
+  </body>
+</html>
