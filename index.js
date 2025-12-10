@@ -372,6 +372,21 @@ app.delete("/profesores", (req, res) =>
   res.status(405).json({ error: "No permitido" })
 );
 
+// ===============================================
+//          ENDPOINT DE MANTENIMIENTO (RESET)
+// ===============================================
+app.delete("/reset-db", async (req, res) => {
+  try {
+    // force: true borra las tablas y las crea de nuevo (Wipe total)
+    await sequelize.sync({ force: true });
+    res
+      .status(200)
+      .json({ message: "¡Base de datos limpiada y reiniciada con éxito!" });
+  } catch (error) {
+    res.status(500).json({ error: "Error al resetear DB: " + error.message });
+  }
+});
+
 // Inicio
 sequelize.sync().then(() => {
   console.log("✅ DB Sincronizada");
