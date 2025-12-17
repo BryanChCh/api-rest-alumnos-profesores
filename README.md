@@ -6,6 +6,10 @@ Este proyecto demuestra la integración de múltiples servicios en la nube para 
 
 ## 🏗️ Arquitectura y Tecnologías
 
+El siguiente diagrama ilustra el flujo de datos y la interacción entre los servicios de AWS:
+
+<img width="1312" height="846" alt="image" src="https://github.com/user-attachments/assets/706bab1f-44ac-445e-a964-ce78b29065b3" />
+
 El sistema corre sobre un entorno **Node.js** y orquesta los siguientes servicios de AWS:
 
 | Servicio AWS | Uso en el Proyecto |
