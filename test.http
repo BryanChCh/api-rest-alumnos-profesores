@@ -113,7 +113,7 @@ DELETE http://localhost:8080/alumnos
 
 ### BORRAR TODA LA BASE DE DATOS (RESET TOTAL)
 # ¡Cuidado! Esto borra todos los alumnos y profesores y reinicia los IDs a 1.
-DELETE http://ec2-54-157-129-226.compute-1.amazonaws.com:8080/reset-db
+DELETE http://localhost:8080/reset-db
 
 # Para hacerlo en la nube, cambia localhost por tu DNS:
 # DELETE http://ec2-52-91-120-85.compute-1.amazonaws.com:8080/reset-db

@@ -43,8 +43,6 @@ app.get("/", (req, res) => {
   res.send("¡API REST Final: RDS + S3 + SNS + DynamoDB!");
 });
 
-// ... (El resto del código de endpoints SIGUE IGUAL, no necesitas cambiar nada más abajo) ...
-
 // ===============================================
 //          ENDPOINTS DE ALUMNOS
 // ===============================================
